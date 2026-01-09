@@ -5,7 +5,7 @@
 
 import { Modal, Form, Input, Select } from 'antd';
 import { useEffect } from 'react';
-import type { Task, CreateTaskDTO, TaskStatus, TaskPriority } from '../../types/task.types';
+import type { Task, CreateTaskDTO, TaskStatus, TaskPriority } from '../types/task.types';
 
 interface TaskModalProps {
   open: boolean;
