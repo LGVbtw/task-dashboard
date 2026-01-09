@@ -81,6 +81,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
     return (saved as 'ALL' | 'HIGH' | 'MEDIUM' | 'LOW') || 'ALL';
   });
 
+  // État pour gérer l'expansion des colonnes (afficher toutes les tâches ou seulement 5)
+  const [expandedColumns, setExpandedColumns] = useState<Set<TaskStatus>>(new Set());
+
+  // Limite de tâches affichées par défaut
+  const INITIAL_TASK_LIMIT = 5;
+
   // Sauvegarder le tri dans localStorage quand il change
   useEffect(() => {
     localStorage.setItem(SORT_STORAGE_KEY, sortType);
@@ -210,6 +216,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
   };
 
   /**
+   * Basculer l'expansion d'une colonne
+   */
+  const toggleColumnExpansion = (status: TaskStatus) => {
+    setExpandedColumns((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(status)) {
+        newSet.delete(status);
+      } else {
+        newSet.add(status);
+      }
+      return newSet;
+    });
+  };
+
+  /**
    * Composant de carte draggable
    */
   const DraggableTaskCard: React.FC<{ task: Task }> = ({ task }) => {
@@ -298,6 +319,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
     const priorityCounts = countByPriority(columnTasks);
     const sortedTasks = sortTasks(columnTasks);
 
+    // Vérifier si la colonne est étendue
+    const isExpanded = expandedColumns.has(status.status);
+    const hasMoreTasks = sortedTasks.length > INITIAL_TASK_LIMIT;
+    const displayedTasks = isExpanded ? sortedTasks : sortedTasks.slice(0, INITIAL_TASK_LIMIT);
+
     return (
       <Col key={status.status} xs={24} md={8}>
         <div ref={setNodeRef}>
@@ -336,7 +362,33 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
             headStyle={{ backgroundColor: '#fafafa' }}
           >
             {sortedTasks.length > 0 ? (
-              sortedTasks.map((task) => <DraggableTaskCard key={task.id} task={task} />)
+              <>
+                {displayedTasks.map((task) => (
+                  <DraggableTaskCard key={task.id} task={task} />
+                ))}
+                
+                {/* Bouton "Voir plus" si il y a plus de tâches */}
+                {hasMoreTasks && !isExpanded && (
+                  <Button
+                    type="link"
+                    onClick={() => toggleColumnExpansion(status.status)}
+                    style={{ width: '100%', marginTop: 8 }}
+                  >
+                    Voir plus ({sortedTasks.length - INITIAL_TASK_LIMIT} restantes)
+                  </Button>
+                )}
+
+                {/* Bouton "Voir moins" si la colonne est étendue */}
+                {hasMoreTasks && isExpanded && (
+                  <Button
+                    type="link"
+                    onClick={() => toggleColumnExpansion(status.status)}
+                    style={{ width: '100%', marginTop: 8 }}
+                  >
+                    Voir moins
+                  </Button>
+                )}
+              </>
             ) : (
               <Empty
                 description="Aucune tâche"
@@ -471,6 +523,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
         editingTask={editingTask}
         onSave={submitTaskForm}
         onCancel={closeModal}
+        tasks={tasks}
       />
     </DndContext>
   );

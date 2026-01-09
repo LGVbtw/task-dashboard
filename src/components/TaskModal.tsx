@@ -12,6 +12,7 @@ interface TaskModalProps {
   onCancel: () => void;
   onSave: (data: CreateTaskDTO) => void;
   editingTask?: Task;
+  tasks: Task[]; // Pour vérifier l'unicité du titre
 }
 
 const { TextArea } = Input;
@@ -21,6 +22,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   onCancel,
   onSave,
   editingTask,
+  tasks,
 }) => {
   const [form] = Form.useForm();
 
@@ -101,6 +103,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             { required: true, message: 'Le titre est obligatoire' },
             { min: 3, message: 'Le titre doit contenir au moins 3 caractères' },
             { max: 100, message: 'Le titre ne peut pas dépasser 100 caractères' },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                
+                // Vérifier si le titre existe déjà (en excluant la tâche en cours d'édition)
+                const titleExists = tasks.some(
+                  (task) => 
+                    task.title.toLowerCase() === value.toLowerCase() && 
+                    task.id !== editingTask?.id
+                );
+                
+                if (titleExists) {
+                  return Promise.reject(new Error('Ce titre existe déjà, veuillez en choisir un autre'));
+                }
+                
+                return Promise.resolve();
+              },
+            },
           ]}
         >
           <Input 
