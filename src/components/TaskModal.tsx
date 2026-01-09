@@ -1,9 +1,19 @@
 /**
  * TaskModal - Modal de création/édition de tâche
  * Utilise strictement Ant Design v5 (pas de CSS custom)
+ * Validation de la Mission B3 (Accessibilité) et B1 (Thème AntD)
  */
 
-import { Modal, Form, Input, Select } from 'antd';
+import { Modal, Form, Input, Select, Space } from 'antd';
+import { 
+  EditOutlined, 
+  PlusOutlined,
+  FileTextOutlined, 
+  CheckCircleOutlined, 
+  FlagOutlined,
+  ClockCircleOutlined,
+  SyncOutlined
+} from '@ant-design/icons';
 import { useEffect } from 'react';
 import type { Task, CreateTaskDTO, TaskStatus, TaskPriority } from '../types/task.types';
 
@@ -79,13 +89,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   return (
     <Modal
-      title={isEditMode ? 'Modifier la tâche' : 'Nouvelle tâche'}
+      title={
+        <Space>
+          {isEditMode ? <EditOutlined /> : <PlusOutlined />}
+          <span>{isEditMode ? 'Modifier la tâche' : 'Nouvelle tâche'}</span>
+        </Space>
+      }
       open={open}
       onOk={handleOk}
       onCancel={handleCancel}
       okText={isEditMode ? 'Modifier' : 'Créer'}
       cancelText="Annuler"
       width={600}
+      centered
       destroyOnClose
     >
       <Form
@@ -95,10 +111,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           status: 'TODO' as TaskStatus,
           priority: 'MEDIUM' as TaskPriority,
         }}
+        style={{ marginTop: 20 }}
       >
         <Form.Item
           name="title"
-          label="Titre"
+          label={<Space><FileTextOutlined /> Titre</Space>}
           rules={[
             { required: true, message: 'Le titre est obligatoire' },
             { min: 3, message: 'Le titre doit contenir au moins 3 caractères' },
@@ -131,7 +148,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         <Form.Item
           name="description"
-          label="Description"
+          label={<Space><EditOutlined /> Description</Space>}
           rules={[
             { max: 500, message: 'La description ne peut pas dépasser 500 caractères' },
           ]}
@@ -146,25 +163,37 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         <Form.Item
           name="status"
-          label="Statut"
+          label={<Space><CheckCircleOutlined /> Statut</Space>}
           rules={[{ required: true, message: 'Le statut est obligatoire' }]}
         >
           <Select placeholder="Sélectionner un statut">
-            <Select.Option value="TODO">À faire</Select.Option>
-            <Select.Option value="DOING">En cours</Select.Option>
-            <Select.Option value="DONE">Terminé</Select.Option>
+            <Select.Option value="TODO">
+              <Space><ClockCircleOutlined /> À faire</Space>
+            </Select.Option>
+            <Select.Option value="DOING">
+              <Space><SyncOutlined spin /> En cours</Space>
+            </Select.Option>
+            <Select.Option value="DONE">
+              <Space><CheckCircleOutlined style={{ color: '#52c41a' }} /> Terminé</Space>
+            </Select.Option>
           </Select>
         </Form.Item>
 
         <Form.Item
           name="priority"
-          label="Priorité"
+          label={<Space><FlagOutlined /> Priorité</Space>}
           rules={[{ required: true, message: 'La priorité est obligatoire' }]}
         >
           <Select placeholder="Sélectionner une priorité">
-            <Select.Option value="LOW">Basse</Select.Option>
-            <Select.Option value="MEDIUM">Moyenne</Select.Option>
-            <Select.Option value="HIGH">Haute</Select.Option>
+            <Select.Option value="LOW">
+              <Space><FlagOutlined style={{ color: '#52c41a' }} /> Basse</Space>
+            </Select.Option>
+            <Select.Option value="MEDIUM">
+              <Space><FlagOutlined style={{ color: '#faad14' }} /> Moyenne</Space>
+            </Select.Option>
+            <Select.Option value="HIGH">
+              <Space><FlagOutlined style={{ color: '#ff4d4f' }} /> Haute</Space>
+            </Select.Option>
           </Select>
         </Form.Item>
       </Form>
