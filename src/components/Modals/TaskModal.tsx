@@ -1,58 +1,75 @@
 /**
- * Modal de formulaire pour créer/éditer une tâche
+ * TaskModal - Modal de création/édition de tâche
+ * Utilise strictement Ant Design v5 (pas de CSS custom)
  */
 
 import { Modal, Form, Input, Select } from 'antd';
+import { useEffect } from 'react';
 import type { Task, CreateTaskDTO, TaskStatus, TaskPriority } from '../../types/task.types';
 
-interface TaskFormModalProps {
+interface TaskModalProps {
   open: boolean;
-  task?: Task; // Si présent, on est en mode édition
-  onSubmit: (data: CreateTaskDTO) => void;
   onCancel: () => void;
+  onSave: (data: CreateTaskDTO) => void;
+  editingTask?: Task;
 }
 
 const { TextArea } = Input;
 
-export const TaskFormModal: React.FC<TaskFormModalProps> = ({
+export const TaskModal: React.FC<TaskModalProps> = ({
   open,
-  task,
-  onSubmit,
   onCancel,
+  onSave,
+  editingTask,
 }) => {
   const [form] = Form.useForm();
 
-  const isEditMode = !!task;
+  const isEditMode = !!editingTask;
 
-  // Initialiser le formulaire avec les données de la tâche
-  const initialValues = task
-    ? {
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
+  /**
+   * Pré-remplir le formulaire quand on édite une tâche
+   */
+  useEffect(() => {
+    if (open) {
+      if (editingTask) {
+        form.setFieldsValue({
+          title: editingTask.title,
+          description: editingTask.description,
+          status: editingTask.status,
+          priority: editingTask.priority,
+        });
+      } else {
+        // Valeurs par défaut pour une nouvelle tâche
+        form.setFieldsValue({
+          status: 'TODO' as TaskStatus,
+          priority: 'LOW' as TaskPriority,
+        });
       }
-    : {
-        status: 'TODO' as TaskStatus,
-        priority: 'MEDIUM' as TaskPriority,
-      };
+    }
+  }, [open, editingTask, form]);
 
+  /**
+   * Soumettre le formulaire
+   */
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      const formData: CreateTaskDTO = {
+      const taskData: CreateTaskDTO = {
         title: values.title,
-        description: values.description,
+        description: values.description || undefined,
         status: values.status,
         priority: values.priority,
       };
-      onSubmit(formData);
+      onSave(taskData);
       form.resetFields();
     } catch (error) {
       console.error('Validation échouée:', error);
     }
   };
 
+  /**
+   * Annuler et fermer la modal
+   */
   const handleCancel = () => {
     form.resetFields();
     onCancel();
@@ -67,11 +84,15 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       okText={isEditMode ? 'Modifier' : 'Créer'}
       cancelText="Annuler"
       width={600}
+      destroyOnClose
     >
       <Form
         form={form}
         layout="vertical"
-        initialValues={initialValues}
+        initialValues={{
+          status: 'TODO' as TaskStatus,
+          priority: 'MEDIUM' as TaskPriority,
+        }}
       >
         <Form.Item
           name="title"
@@ -79,18 +100,27 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           rules={[
             { required: true, message: 'Le titre est obligatoire' },
             { min: 3, message: 'Le titre doit contenir au moins 3 caractères' },
+            { max: 100, message: 'Le titre ne peut pas dépasser 100 caractères' },
           ]}
         >
-          <Input placeholder="Ex: Implémenter l'authentification" />
+          <Input 
+            placeholder="Ex: Implémenter l'authentification" 
+            maxLength={100}
+          />
         </Form.Item>
 
         <Form.Item
           name="description"
           label="Description"
+          rules={[
+            { max: 500, message: 'La description ne peut pas dépasser 500 caractères' },
+          ]}
         >
           <TextArea
             rows={4}
             placeholder="Détails de la tâche..."
+            maxLength={500}
+            showCount
           />
         </Form.Item>
 
@@ -99,7 +129,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           label="Statut"
           rules={[{ required: true, message: 'Le statut est obligatoire' }]}
         >
-          <Select>
+          <Select placeholder="Sélectionner un statut">
             <Select.Option value="TODO">À faire</Select.Option>
             <Select.Option value="DOING">En cours</Select.Option>
             <Select.Option value="DONE">Terminé</Select.Option>
@@ -111,7 +141,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           label="Priorité"
           rules={[{ required: true, message: 'La priorité est obligatoire' }]}
         >
-          <Select>
+          <Select placeholder="Sélectionner une priorité">
             <Select.Option value="LOW">Basse</Select.Option>
             <Select.Option value="MEDIUM">Moyenne</Select.Option>
             <Select.Option value="HIGH">Haute</Select.Option>

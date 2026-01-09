@@ -7,7 +7,7 @@ import { Layout, Button, Space, Typography, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useTaskBoard } from '../hooks/useTaskBoard';
 import { ConfirmDeleteModal } from '../components/Modals/ConfirmDeleteModal';
-import { TaskFormModal } from '../components/Modals/TaskFormModal';
+import { TaskModal } from '../components/Modals/TaskModal';
 import { KanbanBoard } from '../components/Kanban/KanbanBoard';
 import type { Task } from '../types/task.types';
 
@@ -95,10 +95,10 @@ export const Dashboard: React.FC = () => {
       </Content>
 
       {/* Modals */}
-      <TaskFormModal
+      <TaskModal
         open={isModalOpen}
-        task={editingTask}
-        onSubmit={submitTaskForm}
+        editingTask={editingTask}
+        onSave={submitTaskForm}
         onCancel={closeModal}
       />
 

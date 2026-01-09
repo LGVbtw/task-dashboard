@@ -9,5 +9,5 @@ export { KanbanColumn } from './Kanban/KanbanColumn';
 export { TaskCard } from './Kanban/TaskCard';
 
 // Composants Modals
-export { TaskFormModal } from './Modals/TaskFormModal';
+export { TaskModal } from './Modals/TaskModal';
 export { ConfirmDeleteModal } from './Modals/ConfirmDeleteModal';
