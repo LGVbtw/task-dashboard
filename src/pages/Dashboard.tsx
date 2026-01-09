@@ -15,6 +15,7 @@ import {
   SyncOutlined
 } from '@ant-design/icons';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { useTaskBoard } from '../hooks/useTaskBoard';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -22,6 +23,12 @@ const { Title, Text } = Typography;
 export const Dashboard: React.FC = () => {
   const { token } = theme.useToken();
   const [searchTerm, setSearchTerm] = useState('');
+  const { tasks } = useTaskBoard();
+
+  // Calculer les statistiques dynamiquement
+  const todoCount = tasks.filter(task => task.status === 'TODO').length;
+  const doingCount = tasks.filter(task => task.status === 'DOING').length;
+  const doneCount = tasks.filter(task => task.status === 'DONE').length;
 
   return (
     <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
@@ -109,7 +116,7 @@ export const Dashboard: React.FC = () => {
               <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <Statistic
                   title="Tâches en attente"
-                  value={12}
+                  value={todoCount}
                   prefix={<ClockCircleOutlined style={{ color: token.colorWarning, marginRight: 8 }} />}
                 />
               </Card>
@@ -118,7 +125,7 @@ export const Dashboard: React.FC = () => {
               <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <Statistic
                   title="En cours"
-                  value={5}
+                  value={doingCount}
                   prefix={<SyncOutlined spin style={{ color: token.colorPrimary, marginRight: 8 }} />}
                 />
               </Card>
@@ -127,7 +134,7 @@ export const Dashboard: React.FC = () => {
               <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <Statistic
                   title="Terminées"
-                  value={28}
+                  value={doneCount}
                   prefix={<CheckCircleOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />}
                 />
               </Card>
