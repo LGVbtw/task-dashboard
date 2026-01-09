@@ -5,7 +5,7 @@
  * Drag & Drop avec @dnd-kit/core
  */
 
-import { Row, Col, Card, Tag, Button, Space, Popconfirm, Empty } from 'antd';
+import { Row, Col, Card, Tag, Button, Space, Popconfirm, Empty, Select } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons';
 import {
   DndContext,
@@ -16,7 +16,7 @@ import {
   closestCorners,
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTaskBoard } from '../hooks/useTaskBoard';
 import { TaskModal } from './TaskModal';
 import { KANBAN_COLUMNS } from '../types/task.types';
@@ -40,6 +40,19 @@ const STATUS_COLORS = {
   DONE: '#52c41a',
 } as const;
 
+// Types de tri disponibles
+type SortType = 
+  | 'priority-high-low'
+  | 'priority-low-high'
+  | 'date-newest'
+  | 'date-oldest'
+  | 'title-asc'
+  | 'title-desc';
+
+// Clés pour localStorage
+const SORT_STORAGE_KEY = 'kanban-sort-preference';
+const PRIORITY_FILTER_STORAGE_KEY = 'kanban-priority-filter';
+
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => {
   const {
     tasks,
@@ -56,6 +69,79 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
   // État pour le drag & drop
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
+  // État pour le tri (chargé depuis localStorage)
+  const [sortType, setSortType] = useState<SortType>(() => {
+    const saved = localStorage.getItem(SORT_STORAGE_KEY);
+    return (saved as SortType) || 'priority-high-low';
+  });
+
+  // État pour le filtre de priorité (chargé depuis localStorage)
+  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>(() => {
+    const saved = localStorage.getItem(PRIORITY_FILTER_STORAGE_KEY);
+    return (saved as 'ALL' | 'HIGH' | 'MEDIUM' | 'LOW') || 'ALL';
+  });
+
+  // Sauvegarder le tri dans localStorage quand il change
+  useEffect(() => {
+    localStorage.setItem(SORT_STORAGE_KEY, sortType);
+  }, [sortType]);
+
+  // Sauvegarder le filtre de priorité dans localStorage
+  useEffect(() => {
+    localStorage.setItem(PRIORITY_FILTER_STORAGE_KEY, priorityFilter);
+  }, [priorityFilter]);
+
+  /**
+   * Fonction de tri des tâches
+   */
+  const sortTasks = (tasksToSort: Task[]): Task[] => {
+    const sorted = [...tasksToSort];
+
+    switch (sortType) {
+      case 'priority-high-low':
+        return sorted.sort((a, b) => {
+          const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        });
+
+      case 'priority-low-high':
+        return sorted.sort((a, b) => {
+          const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        });
+
+      case 'date-newest':
+        return sorted.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+      case 'date-oldest':
+        return sorted.sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+
+      case 'title-asc':
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+
+      case 'title-desc':
+        return sorted.sort((a, b) => b.title.localeCompare(a.title));
+
+      default:
+        return sorted;
+    }
+  };
+
+  /**
+   * Compter les tâches par priorité pour une colonne
+   */
+  const countByPriority = (columnTasks: Task[]) => {
+    return {
+      HIGH: columnTasks.filter((t) => t.priority === 'HIGH').length,
+      MEDIUM: columnTasks.filter((t) => t.priority === 'MEDIUM').length,
+      LOW: columnTasks.filter((t) => t.priority === 'LOW').length,
+    };
+  };
+
   // Configuration des sensors pour le drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -65,14 +151,23 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
     })
   );
 
-  // Filtrer les tâches par recherche
+  // Filtrer les tâches par recherche ET par priorité
   const filteredTasks = tasks.filter((task) => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      task.title.toLowerCase().includes(search) ||
-      task.description?.toLowerCase().includes(search)
-    );
+    // Filtre par recherche
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchSearch = 
+        task.title.toLowerCase().includes(search) ||
+        task.description?.toLowerCase().includes(search);
+      if (!matchSearch) return false;
+    }
+
+    // Filtre par priorité
+    if (priorityFilter !== 'ALL') {
+      return task.priority === priorityFilter;
+    }
+
+    return true;
   });
 
   // Trouver la tâche active pendant le drag
@@ -200,14 +295,35 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
       id: status.status,
     });
 
+    const priorityCounts = countByPriority(columnTasks);
+    const sortedTasks = sortTasks(columnTasks);
+
     return (
       <Col key={status.status} xs={24} md={8}>
         <div ref={setNodeRef}>
           <Card
             title={
-              <Space>
-                <span style={{ fontWeight: 600 }}>{status.title}</span>
-                <Tag color={status.color}>{columnTasks.length}</Tag>
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                {/* Ligne 1 : Titre + Total */}
+                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <Space>
+                    <span style={{ fontWeight: 600 }}>{status.title}</span>
+                    <Tag color={status.color}>{columnTasks.length}</Tag>
+                  </Space>
+                </Space>
+
+                {/* Ligne 2 : Compteurs par priorité */}
+                <Space size={8}>
+                  <Tag color={PRIORITY_COLORS.HIGH} style={{ margin: 0 }}>
+                    🔴 {priorityCounts.HIGH}
+                  </Tag>
+                  <Tag color={PRIORITY_COLORS.MEDIUM} style={{ margin: 0 }}>
+                    🟠 {priorityCounts.MEDIUM}
+                  </Tag>
+                  <Tag color={PRIORITY_COLORS.LOW} style={{ margin: 0 }}>
+                    🟢 {priorityCounts.LOW}
+                  </Tag>
+                </Space>
               </Space>
             }
             bordered
@@ -219,8 +335,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
             }}
             headStyle={{ backgroundColor: '#fafafa' }}
           >
-            {columnTasks.length > 0 ? (
-              columnTasks.map((task) => <DraggableTaskCard key={task.id} task={task} />)
+            {sortedTasks.length > 0 ? (
+              sortedTasks.map((task) => <DraggableTaskCard key={task.id} task={task} />)
             ) : (
               <Empty
                 description="Aucune tâche"
@@ -242,17 +358,87 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ searchTerm = '' }) => 
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {/* Bouton Nouvelle Tâche */}
-      <div style={{ marginBottom: 24, textAlign: 'right' }}>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={openCreateModal}
-        >
-          Nouvelle tâche
-        </Button>
-      </div>
+      {/* Barre d'actions en haut */}
+      <Space direction="vertical" size="middle" style={{ width: '100%', marginBottom: 24 }}>
+        {/* Ligne 1 : Tri et Bouton Nouvelle Tâche */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Select de tri */}
+          <Space>
+            <span style={{ fontWeight: 500 }}>Trier par :</span>
+            <Select
+              value={sortType}
+              onChange={setSortType}
+              style={{ width: 200 }}
+              options={[
+                { value: 'priority-high-low', label: '🔴 Priorité (Haute → Basse)' },
+                { value: 'priority-low-high', label: '🟢 Priorité (Basse → Haute)' },
+                { value: 'date-newest', label: '📅 Plus récent' },
+                { value: 'date-oldest', label: '📅 Plus ancien' },
+                { value: 'title-asc', label: '🔤 Titre (A → Z)' },
+                { value: 'title-desc', label: '🔤 Titre (Z → A)' },
+              ]}
+            />
+          </Space>
+
+          {/* Bouton Nouvelle Tâche */}
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
+            Nouvelle tâche
+          </Button>
+        </div>
+
+        {/* Ligne 2 : Filtres de priorité */}
+        <div>
+          <Space>
+            <span style={{ fontWeight: 500 }}>Filtrer par priorité :</span>
+            <Space.Compact>
+              <Button
+                type={priorityFilter === 'ALL' ? 'primary' : 'default'}
+                onClick={() => setPriorityFilter('ALL')}
+              >
+                Toutes
+              </Button>
+              <Button
+                danger={priorityFilter === 'HIGH'}
+                type={priorityFilter === 'HIGH' ? 'primary' : 'default'}
+                onClick={() => setPriorityFilter('HIGH')}
+                style={{
+                  backgroundColor: priorityFilter === 'HIGH' ? PRIORITY_COLORS.HIGH : undefined,
+                  borderColor: PRIORITY_COLORS.HIGH,
+                }}
+              >
+                🔴 HIGH
+              </Button>
+              <Button
+                type={priorityFilter === 'MEDIUM' ? 'primary' : 'default'}
+                onClick={() => setPriorityFilter('MEDIUM')}
+                style={{
+                  backgroundColor: priorityFilter === 'MEDIUM' ? PRIORITY_COLORS.MEDIUM : undefined,
+                  borderColor: PRIORITY_COLORS.MEDIUM,
+                  color: priorityFilter === 'MEDIUM' ? 'white' : undefined,
+                }}
+              >
+                🟠 MEDIUM
+              </Button>
+              <Button
+                type={priorityFilter === 'LOW' ? 'primary' : 'default'}
+                onClick={() => setPriorityFilter('LOW')}
+                style={{
+                  backgroundColor: priorityFilter === 'LOW' ? PRIORITY_COLORS.LOW : undefined,
+                  borderColor: PRIORITY_COLORS.LOW,
+                  color: priorityFilter === 'LOW' ? 'white' : undefined,
+                }}
+              >
+                🟢 LOW
+              </Button>
+            </Space.Compact>
+          </Space>
+        </div>
+      </Space>
 
       {/* Les 3 colonnes Kanban */}
       <Row gutter={[16, 16]}>
