@@ -1,15 +1,18 @@
 /**
- * Page Dashboard - Vue principale avec le Kanban
+ * Page Dashboard - Vue principale avec Statistiques et Kanban
  */
 
 import { useState } from 'react';
-import { Layout, Input, Typography, Space, Button, Avatar, Breadcrumb, Card, theme } from 'antd';
+import { Layout, Input, Typography, Space, Button, Avatar, Breadcrumb, Card, theme, Col, Row, Statistic } from 'antd';
 import { 
   SearchOutlined, 
   UserOutlined, 
   LayoutOutlined, 
   BellOutlined, 
-  SettingOutlined 
+  SettingOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import { KanbanBoard } from '../components/KanbanBoard';
 
@@ -24,7 +27,7 @@ export const Dashboard: React.FC = () => {
     <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
       {/* HEADER */}
       <Header style={{ 
-        background: token.colorBgContainer, 
+        background: '#fff', 
         padding: '0 40px', 
         display: 'flex', 
         alignItems: 'center', 
@@ -41,7 +44,8 @@ export const Dashboard: React.FC = () => {
               background: token.colorPrimary, 
               padding: '6px', 
               borderRadius: '8px', 
-              display: 'flex' 
+              display: 'flex',
+              boxShadow: `0 2px 8px ${token.colorPrimary}40`
             }}>
               <LayoutOutlined style={{ color: '#fff', fontSize: '20px' }} />
             </div>
@@ -64,7 +68,7 @@ export const Dashboard: React.FC = () => {
           <Button type="text" icon={<BellOutlined />} />
           <Button type="text" icon={<SettingOutlined />} />
           <div style={{ width: '1px', height: '24px', background: token.colorBorder, margin: '0 8px' }} />
-          <Space size="small" style={{ cursor: 'pointer' }}>
+          <Space size="small" style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', transition: 'all 0.3s' }} className="user-profile">
             <Text strong>Yanis</Text>
             <Avatar icon={<UserOutlined />} style={{ backgroundColor: token.colorPrimary }} />
           </Space>
@@ -74,14 +78,11 @@ export const Dashboard: React.FC = () => {
       <Content style={{ padding: '32px 40px' }}>
         <Space direction="vertical" size={32} style={{ width: '100%' }}>
           
-          {/* BARRE D'ENTÊTE */}
+          {/* SECTION RECHERCHE ET DESCRIPTION */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <Text 
-                type="secondary" 
-                style={{ fontSize: '18px', fontWeight: 400 }}
-              >
-                Gérez vos tâches et suivez l'avancement du projet en temps réel.
+              <Text type="secondary" style={{ fontSize: '16px' }}>
+                Suivez l'avancement de vos tâches en temps réel.
               </Text>
             </div>
             
@@ -89,7 +90,12 @@ export const Dashboard: React.FC = () => {
               <Input
                 placeholder="Rechercher une tâche..."
                 prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
-                style={{ width: 300, height: 40 }}
+                style={{ 
+                    width: 320, 
+                    height: 40, 
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.05)' 
+                }}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 allowClear
                 value={searchTerm}
@@ -97,14 +103,47 @@ export const Dashboard: React.FC = () => {
             </Space>
           </div>
 
+          {/* CARTES DE STATISTIQUES */}
+          <Row gutter={24}>
+            <Col span={8}>
+              <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <Statistic
+                  title="Tâches en attente"
+                  value={12}
+                  prefix={<ClockCircleOutlined style={{ color: token.colorWarning, marginRight: 8 }} />}
+                />
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <Statistic
+                  title="En cours"
+                  value={5}
+                  prefix={<SyncOutlined spin style={{ color: token.colorPrimary, marginRight: 8 }} />}
+                />
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <Statistic
+                  title="Terminées"
+                  value={28}
+                  prefix={<CheckCircleOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />}
+                />
+              </Card>
+            </Col>
+          </Row>
+
           {/* ZONE KANBAN */}
-          <Card 
-            bordered={false} 
-            style={{ background: 'transparent', padding: 0 }}
-            bodyStyle={{ padding: 0 }}
-          >
+          <div style={{ 
+            background: 'rgba(0,0,0,0.01)', 
+            borderRadius: '16px', 
+            padding: '8px',
+            border: `1px dashed ${token.colorBorderSecondary}`
+          }}>
             <KanbanBoard searchTerm={searchTerm} />
-          </Card>
+          </div>
+
         </Space>
       </Content>
     </Layout>
