@@ -5,12 +5,11 @@
 import { useState } from 'react';
 import { Layout, Button, Space, Typography, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useTasks } from '../hooks/useTasks';
-import { useTaskFilters } from '../hooks/useTaskFilters';
-import { KanbanBoard } from '../components/Kanban/KanbanBoard';
-import { TaskFormModal } from '../components/Modals/TaskFormModal';
+import { useTaskBoard } from '../hooks/useTaskBoard';
 import { ConfirmDeleteModal } from '../components/Modals/ConfirmDeleteModal';
-import type { Task, CreateTaskDTO, TaskStatus } from '../types/task.types';
+import { TaskFormModal } from '../components/Modals/TaskFormModal';
+import { KanbanBoard } from '../components/Kanban/KanbanBoard';
+import type { Task } from '../types/task.types';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -18,74 +17,41 @@ const { Title } = Typography;
 export const Dashboard: React.FC = () => {
   const {
     tasks,
-    createTask,
-    updateTask,
-    deleteTask,
+    isModalOpen,
+    editingTask,
     changeTaskStatus,
-    getTaskById,
-  } = useTasks();
+    deleteTask,
+    openCreateModal,
+    openEditModal,
+    closeModal,
+    submitTaskForm,
+  } = useTaskBoard();
 
-  const { filteredTasks, setSearchTerm } = useTaskFilters(tasks);
-
-  // États pour les modals
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<Task | undefined>();
+  // État local pour la recherche et la suppression
+  const [searchTerm, setSearchTerm] = useState('');
   const [taskToDelete, setTaskToDelete] = useState<Task | undefined>();
 
-  // Handlers pour le formulaire
-  const handleOpenCreateModal = () => {
-    setTaskToEdit(undefined);
-    setIsFormModalOpen(true);
-  };
+  // Filtrage des tâches par recherche
+  const filteredTasks = tasks.filter((task) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      task.title.toLowerCase().includes(search) ||
+      task.description?.toLowerCase().includes(search)
+    );
+  });
 
-  const handleOpenEditModal = (task: Task) => {
-    setTaskToEdit(task);
-    setIsFormModalOpen(true);
-  };
-
-  const handleFormSubmit = (data: CreateTaskDTO) => {
-    if (taskToEdit) {
-      // Mise à jour
-      updateTask({ ...data, id: taskToEdit.id });
-    } else {
-      // Création
-      createTask(data);
-    }
-    setIsFormModalOpen(false);
-    setTaskToEdit(undefined);
-  };
-
-  const handleFormCancel = () => {
-    setIsFormModalOpen(false);
-    setTaskToEdit(undefined);
-  };
-
-  // Handlers pour la suppression
+  // Handlers
   const handleOpenDeleteModal = (taskId: string) => {
-    const task = getTaskById(taskId);
-    if (task) {
-      setTaskToDelete(task);
-      setIsDeleteModalOpen(true);
-    }
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) setTaskToDelete(task);
   };
 
   const handleDeleteConfirm = () => {
     if (taskToDelete) {
       deleteTask(taskToDelete.id);
-      setIsDeleteModalOpen(false);
       setTaskToDelete(undefined);
     }
-  };
-
-  const handleDeleteCancel = () => {
-    setIsDeleteModalOpen(false);
-    setTaskToDelete(undefined);
-  };
-
-  // Handler pour le déplacement de tâche
-  const handleTaskMove = (taskId: string, newStatus: TaskStatus) => {
-    changeTaskStatus(taskId, newStatus);
   };
 
   return (
@@ -104,13 +70,14 @@ export const Dashboard: React.FC = () => {
               placeholder="Rechercher une tâche..."
               prefix={<SearchOutlined />}
               style={{ maxWidth: 400 }}
+              value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               allowClear
             />
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={handleOpenCreateModal}
+              onClick={openCreateModal}
               size="large"
             >
               Nouvelle tâche
@@ -120,8 +87,8 @@ export const Dashboard: React.FC = () => {
           {/* Tableau Kanban */}
           <KanbanBoard
             tasks={filteredTasks}
-            onTaskMove={handleTaskMove}
-            onTaskEdit={handleOpenEditModal}
+            onTaskMove={changeTaskStatus}
+            onTaskEdit={openEditModal}
             onTaskDelete={handleOpenDeleteModal}
           />
         </Space>
@@ -129,17 +96,17 @@ export const Dashboard: React.FC = () => {
 
       {/* Modals */}
       <TaskFormModal
-        open={isFormModalOpen}
-        task={taskToEdit}
-        onSubmit={handleFormSubmit}
-        onCancel={handleFormCancel}
+        open={isModalOpen}
+        task={editingTask}
+        onSubmit={submitTaskForm}
+        onCancel={closeModal}
       />
 
       <ConfirmDeleteModal
-        open={isDeleteModalOpen}
+        open={!!taskToDelete}
         taskTitle={taskToDelete?.title || ''}
         onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
+        onCancel={() => setTaskToDelete(undefined)}
       />
     </Layout>
   );

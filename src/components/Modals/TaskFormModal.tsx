@@ -2,8 +2,7 @@
  * Modal de formulaire pour créer/éditer une tâche
  */
 
-import { Modal, Form, Input, Select, DatePicker } from 'antd';
-import dayjs from 'dayjs';
+import { Modal, Form, Input, Select } from 'antd';
 import type { Task, CreateTaskDTO, TaskStatus, TaskPriority } from '../../types/task.types';
 
 interface TaskFormModalProps {
@@ -28,8 +27,10 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   // Initialiser le formulaire avec les données de la tâche
   const initialValues = task
     ? {
-        ...task,
-        dueDate: task.dueDate ? dayjs(task.dueDate) : undefined,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
       }
     : {
         status: 'TODO' as TaskStatus,
@@ -44,7 +45,6 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         description: values.description,
         status: values.status,
         priority: values.priority,
-        dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
       };
       onSubmit(formData);
       form.resetFields();
@@ -116,17 +116,6 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             <Select.Option value="MEDIUM">Moyenne</Select.Option>
             <Select.Option value="HIGH">Haute</Select.Option>
           </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="dueDate"
-          label="Date d'échéance"
-        >
-          <DatePicker
-            style={{ width: '100%' }}
-            format="DD/MM/YYYY"
-            placeholder="Sélectionner une date"
-          />
         </Form.Item>
       </Form>
     </Modal>

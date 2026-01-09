@@ -17,25 +17,23 @@ export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
  * Interface principale d'une tâche
  */
 export interface Task {
-  id: string; // UUID généré par l'API ou le frontend
+  id: string;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate?: string; // Format ISO 8601 (ex: "2026-01-15T10:00:00Z")
-  createdAt?: string; // Date de création
-  updatedAt?: string; // Date de dernière modification
+  createdAt: string; // Date de création (obligatoire)
 }
 
 /**
- * Type pour la création d'une tâche (sans ID, sans dates auto-générées)
+ * Type pour la création d'une tâche (sans ID, sans createdAt)
  */
-export type CreateTaskDTO = Omit<Task, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateTaskDTO = Omit<Task, 'id' | 'createdAt'>;
 
 /**
  * Type pour la mise à jour d'une tâche (tous les champs sont optionnels sauf l'ID)
  */
-export type UpdateTaskDTO = Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>> & {
+export type UpdateTaskDTO = Partial<Omit<Task, 'id' | 'createdAt'>> & {
   id: string;
 };
 

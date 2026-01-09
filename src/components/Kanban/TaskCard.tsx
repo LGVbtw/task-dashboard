@@ -81,16 +81,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             {task.description}
           </div>
         )}
-        <Space wrap>
-          <Tag color={PRIORITY_COLORS[task.priority]}>
-            {task.priority}
-          </Tag>
-          {task.dueDate && (
-            <Tag color="blue">
-              {new Date(task.dueDate).toLocaleDateString('fr-FR')}
-            </Tag>
-          )}
-        </Space>
+        <Tag color={PRIORITY_COLORS[task.priority]}>
+          {task.priority}
+        </Tag>
       </Space>
     </Card>
   );
